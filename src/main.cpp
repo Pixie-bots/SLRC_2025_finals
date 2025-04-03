@@ -4,6 +4,7 @@
 #include <string.h>
 #include <Wire.h>
 #include "Adafruit_TCS34725.h"
+#include <Adafruit_SSD1306.h>
 #include <math.h>
 
 Adafruit_TCS34725 tcs = Adafruit_TCS34725(TCS34725_INTEGRATIONTIME_50MS, TCS34725_GAIN_4X);
@@ -30,6 +31,28 @@ unsigned long redMinWhite, redMaxWhite, greenMinWhite, greenMaxWhite, blueMinWhi
 unsigned long redMinYellow, redMaxYellow, greenMinYellow, greenMaxYellow, blueMinYellow, blueMaxYellow;
 
 unsigned long redFreq, greenFreq, blueFreq;
+
+
+// OLED Display Configuration 
+#define SCREEN_WIDTH 128 
+#define SCREEN_HEIGHT 64 
+#define OLED_RESET -1 
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+// Button pins
+#define BTN_UP 40     // Example pin for UP button
+#define BTN_DOWN 41   // Example pin for DOWN button
+#define BTN_SELECT 42 // Example pin for SELECT button
+#define BTN_BACK 43   // Example pin for BACK button
+
+// Menu variables
+int currentMenu = 0;  // Current menu selection
+int totalMenuItems = 9; // Total number of menu items
+bool inSubMenu = false; // Flag to indicate if we're in a submenu
+bool buttonPressed = false; // Flag to debounce buttons
+unsigned long lastButtonPress = 0; // For button debouncing
+#define DEBOUNCE_DELAY 200 // milliseconds
+
 
 // Create servo objects for each joint
 Servo baseServo;      // Base rotation (0-360° capable)
@@ -87,9 +110,13 @@ float calculatePID(int *sensorValues);
 void motor_drive(int left, int right);
 void turnLeft();
 void turnRight();
-void noLine();
-String colordetect();
+
+
 void Task1();
+void Task2();
+void Task3();
+void Task4();
+void Task5();
 void moveStraightPID();
 void moveTurnRightPID();
 void moveTurnLeftPID();
@@ -119,13 +146,23 @@ void smoothMoveServo(Servo &servo, int &currentPos, int targetPos);
 String ball_colour();
 void calibrateColors();
 void readColors();
-void turnLeftNew();
+
+// Function prototypes for menu system
+void displayMenu();
+void handleButtons();
+void executeMenuItem(int item);
+void displayIRArray();
+void displayGrabberDebug();
+void displayColorSensor1();
+void displayColorSensor2();
+void displayColorSensor3();
+
 
 L298N motor1(PWMA, AIN1, AIN2);
 L298N motor2(PWMB, BIN1, BIN2);
 
-#define ENCODER_A1 2 // Encoder A channel (Interrupt pin)
-#define ENCODER_B1 3 // Encoder B channel (Interrupt pin)
+#define ENCODER_A1 2 // Encoder A channel (Interrupt pin)  Left green
+#define ENCODER_B1 3 // Encoder B channel (Interrupt pin)  Right yellow
 
 // Encoder counts
 volatile long encoderCountA = 0; // Encoder count for Motor A
@@ -136,6 +173,9 @@ const int count_moveForward = 85;
 const int count_moveForward_w = 125;
 
 // PID parameters for encoders
+float Kp_e = 5; // Proportional term
+float Ki_e = 0; // Integral term
+float Kd_e = 5; // Derivative term
 float errorenco = 0;
 float previousErrorenco = 0;
 float integralenco = 0;
@@ -193,7 +233,32 @@ void setup() {
   pinMode(13,OUTPUT);
 
   digitalWrite(13,LOW);
-    
+  
+  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3C for 128x64
+    Serial.println(F("SSD1306 allocation failed"));
+    for(;;); // Don't proceed, loop forever
+  }
+
+
+  // Set up button pins
+  pinMode(BTN_UP, INPUT);
+  pinMode(BTN_DOWN, INPUT);
+  pinMode(BTN_SELECT, INPUT);
+  pinMode(BTN_BACK, INPUT);
+  
+  // Clear the buffer
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(0,0);
+  display.println("Robot Menu System");
+  display.println("Use buttons to navigate");
+  display.display();
+  delay(2000);
+
+  // Display initial menu
+  displayMenu();
+
 
   // Initialize TCS34725 color sensor
   pinMode(S0, OUTPUT);
@@ -211,7 +276,7 @@ void setup() {
 
   digitalWrite(S0, HIGH); // LOW to HIGHT
 
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   // Set initial positions
   baseServo.write(basePos);         // Base: 0-360°
@@ -219,14 +284,162 @@ void setup() {
   elbowServo.write(elbowPos);
   gripperServo.write(gripperPos);
 
-  calibrateColors();
+  //calibrateColors();    ******************
+
 
 }
 
 void loop() {
+  // Serial.print("Encoder A: ");
+  // Serial.print(encoderCountA);
+  // Serial.println("\t");
+  // Serial.print("Encoder B: ");
+  // Serial.print(encoderCountB);
+  // Serial.println("\n");
+  // delay(1000);
+  // encoderCountA=0;
+  // encoderCountB=0;
+  // while (encoderCountA < 1000 && encoderCountB < 1000) {
+  //   moveStraightPID();
+  // }
 
-  Task1();
 
+  // Handle button inputs for menu navigation
+  handleButtons();
+
+  // Add any background tasks that need to run continuously
+  delay(50);  // Small delay to prevent CPU hogging 
+
+}
+
+// Function to display the main menu on OLED
+void displayMenu() {
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(0,0);
+  display.println("=== ROBOT MENU ===");
+  
+  // Display menu items with selection indicator
+  for(int i = 0; i < totalMenuItems; i++) {
+    if(i == currentMenu) {
+      display.print("> ");
+    } else {
+      display.print("  ");
+    }
+    
+    // Menu items
+    switch(i) {
+      case 0: display.println("1. Run Task 1"); break;
+      case 1: display.println("2. Run Task 2"); break;
+      case 2: display.println("3. Run Task 3"); break;
+      case 3: display.println("4. Run Task 4"); break;
+      case 4: display.println("5. IR Array Debug"); break;
+      case 5: display.println("6. CS1 (Green/White)"); break;
+      case 6: display.println("7. CS2 (Yellow/White)"); break;
+      case 7: display.println("8. CS3 (Blue/Red)"); break;
+      case 8: display.println("9. Grabber Debug"); break;
+    }
+  }
+  
+  display.println("\nUp/Down: Navigate");
+  display.println("Select: Choose");
+  display.display();
+}
+
+// Handle button inputs for menu navigation
+void handleButtons() {
+  // Button debouncing
+  if (millis() - lastButtonPress < DEBOUNCE_DELAY) {
+    return;
+  }
+  
+  // UP button pressed
+  if (digitalRead(BTN_UP) == LOW && !buttonPressed) {
+    buttonPressed = true;
+    lastButtonPress = millis();
+    
+    // Move menu selection up (with wrap-around)
+    currentMenu = (currentMenu > 0) ? currentMenu - 1 : totalMenuItems - 1;
+    displayMenu();
+  }
+  
+  // DOWN button pressed
+  else if (digitalRead(BTN_DOWN) == LOW && !buttonPressed) {
+    buttonPressed = true;
+    lastButtonPress = millis();
+    
+    // Move menu selection down (with wrap-around)
+    currentMenu = (currentMenu < totalMenuItems - 1) ? currentMenu + 1 : 0;
+    displayMenu();
+  }
+  
+  // SELECT button pressed
+  else if (digitalRead(BTN_SELECT) == LOW && !buttonPressed) {
+    buttonPressed = true;
+    lastButtonPress = millis();
+    
+    // Execute the selected menu item
+    executeMenuItem(currentMenu);
+  }
+  
+  // Reset button state if all buttons are released
+  if (digitalRead(BTN_UP) == HIGH && digitalRead(BTN_DOWN) == HIGH && 
+      digitalRead(BTN_SELECT) == HIGH && digitalRead(BTN_BACK) == HIGH) {
+    buttonPressed = false;
+  }
+}
+
+
+// Execute the selected menu item
+void executeMenuItem(int item) {
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(0,0);
+  
+  switch(item) {
+    case 0: 
+      // Task 1
+      Task1();
+      break;
+    case 1: 
+      // Task 2
+      Task2();
+      break;
+    case 2: 
+      // Task 3
+      Task3();
+      break;
+    case 3: 
+      // Task 4
+      Task4();
+      break;
+    case 4: 
+      // Task 5
+      Task5();
+      break;
+    case 5: 
+      // IR Array Debug
+      displayIRArray();
+      break;
+    case 6: 
+      // Color Sensor 1 Debug (Green/White)
+      displayColorSensor1();
+      break;
+    case 7: 
+      // Color Sensor 2 Debug (Yellow/White)
+      displayColorSensor2();
+      break;
+    case 8: 
+      // Color Sensor 3 Debug (Blue/Red)
+      displayColorSensor3();
+      break;
+    case 9: 
+      // Grabber Debug
+      displayGrabberDebug();
+      break;
+  }
 }
 
 void calibrateColors() {
@@ -572,10 +785,11 @@ void line_follow_juction_turns() {
     line_follow(sensorValues);
   } else if (junction == "TP") {
     is_plus = true;
+    
     //delay(1000);
     green_detect = Green_White_Detect();      //*******************************************************
     //Serial.println(plus);
-
+    
 
     //Serial.println(green_detect);
   } else if (junction == "TT") {
@@ -595,7 +809,7 @@ void moveStraightPID() {
   integralenco += errorenco;
   derivativeenco = errorenco - previousErrorenco;
 
-  float correction = (Kp * errorenco) + (Ki * integralenco) + (Kd * derivativeenco);
+  float correction = (Kp_e * errorenco) + (Ki_e * integralenco) + (Kd_e * derivativeenco);
 
   int motor1Speed = baseSpeed - correction;
   int motor2Speed = baseSpeed + correction;
@@ -669,7 +883,7 @@ void encoder_backward(){
   derivativeenco = errorenco - previousErrorenco;
 
   // Compute the PID correction
-  float correction = (Kp * errorenco) + (Ki * integralenco) + (Kd * derivativeenco);
+  float correction = (Kp_e * errorenco) + (Ki_e * integralenco) + (Kd_e * derivativeenco);
 
   // Adjust motor speeds based on the correction
   int motor1Speed = baseSpeed - correction;  // Motor A
@@ -704,7 +918,7 @@ void moveTurnRightPID() {
   derivativeenco = errorenco - previousErrorenco;
 
   // Compute the PID correction
-  float correction = (Kp * errorenco) + (Ki * integralenco) + (Kd * derivativeenco);
+  float correction = (Kp_e * errorenco) + (Ki_e * integralenco) + (Kd_e * derivativeenco);
 
   // Adjust motor speeds based on the correction
   int motor1Speed = baseSpeed - correction;  // Motor A
@@ -737,7 +951,7 @@ void moveTurnLeftPID() {
   derivativeenco = errorenco - previousErrorenco;
 
   // Compute the PID correction
-  float correction = (Kp * errorenco) + (Ki * integralenco) + (Kd * derivativeenco);
+  float correction = (Kp_e * errorenco) + (Ki_e * integralenco) + (Kd_e * derivativeenco);
 
   // Adjust motor speeds based on the correction
   int motor1Speed = baseSpeed - correction;  // Motor A
@@ -760,21 +974,371 @@ void moveTurnLeftPID() {
 }
 
 
-void Task1(){  
-  if(flag== 0){
-    task1_start();
-    flag = 1;
+void Task1(){
+  task1_start();
+  display.clearDisplay();
+  display.setCursor(0,0);
+  display.println("Running Task 1...");
+  display.display();
+  while (true){
+    colomcheck();
+    if (ball_count==5 && plus==0){
+      motor1.stop();
+      motor2.stop();
+      delay(1000);
+      break;
+    }
   }
-  colomcheck();
+  Task2();
+  
+}  
 
-  while (ball_count==5 && plus==0){
+void Task2(){
+  display.clearDisplay();
+  display.setCursor(0,0);
+  display.println("Running Task 2...");
+  display.display();
+  while (true){
     motor1.stop();
     motor2.stop();
     delay(1000);
-  }
-}  
+    }
+  Task3();
+}
 
- 
+void Task3(){
+  display.clearDisplay();
+  display.setCursor(0,0);
+  display.println("Running Task 3...");
+  display.display();
+  while (true){
+    motor1.stop();
+    motor2.stop();
+    delay(1000);
+    }
+  Task4();
+}
+
+void Task4(){ 
+  display.clearDisplay();
+  display.setCursor(0,0);
+  display.println("Running Task 4...");
+  display.display();
+  while (true){
+    motor1.stop();
+    motor2.stop();
+    delay(1000);
+    }
+  Task5();
+}
+void Task5(){ 
+  display.clearDisplay();
+  display.setCursor(0,0);
+  display.println("Running Task 5...");
+  display.display();
+  while (true){
+    motor1.stop();
+    motor2.stop();
+    delay(1000);
+    }
+}
+
+// IR Array Debug mode
+void displayIRArray() {
+  display.clearDisplay();
+  display.setCursor(0,0);
+  display.println("IR Array Debug Mode");
+  display.println("Press BACK to exit");
+  display.display();
+  
+  while (true) {
+    // Check for exit button
+    if (digitalRead(BTN_BACK) == LOW) {
+      delay(DEBOUNCE_DELAY);
+      if (digitalRead(BTN_BACK) == LOW) {
+        break;  // Exit debug mode
+      }
+    }
+    
+    // Read sensor values
+    readSensors(sensorValues);
+    
+    // Display sensor values
+    display.clearDisplay();
+    display.setCursor(0,0);
+    display.println("IR Array Debug Mode");
+    display.println("Press BACK to exit");
+    display.println("\nSensor Values:");
+    
+    for (int i = 0; i < SensorCount; i++) {
+      display.print(sensorValues[i]);
+      display.print(" ");
+    }
+    
+    display.println("\n\nError: ");
+    display.println(error);
+    display.display();
+    
+    delay(100);  // Update display every 100ms
+  }
+  
+  // Return to main menu
+  displayMenu();
+}
+
+
+
+// Color Sensor 1 Debug mode (Green/White)
+void displayColorSensor1() {
+  display.clearDisplay();
+  display.setCursor(0,0);
+  display.println("Color Sensor 1 Debug");
+  display.println("Green/White Detector");
+  display.println("Press BACK to exit");
+  display.display();
+  
+  while (true) {
+    // Check for exit button
+    if (digitalRead(BTN_BACK) == LOW) {
+      delay(DEBOUNCE_DELAY);
+      if (digitalRead(BTN_BACK) == LOW) {
+        break;  // Exit debug mode
+      }
+    }
+    
+    // Get color sensor data
+    int result = Green_White_Detect();
+    
+    // Get raw color data from TCS34725
+    uint16_t r, g, b, c;
+    tcs.getRawData(&r, &g, &b, &c);
+    
+    // Display results
+    display.clearDisplay();
+    display.setCursor(0,0);
+    display.println("Color Sensor 1 Debug");
+    display.println("Press BACK to exit");
+    display.println("\nDetected Color: ");
+    display.println(result == 1 ? "GREEN" : "WHITE");
+    
+    display.println("\nRaw Values:");
+    display.print("R: ");
+    display.println(r);
+    display.print("G: ");
+    display.println(g);
+    display.print("B: ");
+    display.println(b);
+    display.print("C: ");
+    display.println(c);
+    
+    display.display();
+    
+    delay(200);  // Update display every 200ms
+  }
+  
+  // Return to main menu
+  displayMenu();
+}
+
+// Color Sensor 2 Debug mode (Yellow/White)
+void displayColorSensor2() {
+  display.clearDisplay();
+  display.setCursor(0,0);
+  display.println("Color Sensor 2 Debug");
+  display.println("Yellow/White Detector");
+  display.println("Press BACK to exit");
+  display.display();
+  
+  while (true) {
+    // Check for exit button
+    if (digitalRead(BTN_BACK) == LOW) {
+      delay(DEBOUNCE_DELAY);
+      if (digitalRead(BTN_BACK) == LOW) {
+        break;  // Exit debug mode
+      }
+    }
+    
+    // Read raw color frequencies
+    readColors();
+    
+    // Get color detection result
+    String color = ball_colour();
+    
+    // Display results
+    display.clearDisplay();
+    display.setCursor(0,0);
+    display.println("Color Sensor 2 Debug");
+    display.println("Press BACK to exit");
+    display.println("\nDetected Color: ");
+    display.println(color);
+    
+    display.println("\nFrequencies:");
+    display.print("Red: ");
+    display.println(redFreq);
+    display.print("Green: ");
+    display.println(greenFreq);
+    display.print("Blue: ");
+    display.println(blueFreq);
+    
+    display.display();
+    
+    delay(200);  // Update display every 200ms
+  }
+  
+  // Return to main menu
+  displayMenu();
+}
+
+
+
+// Color Sensor 3 Debug mode (Blue/Red)
+void displayColorSensor3() {
+  display.clearDisplay();
+  display.setCursor(0,0);
+  display.println("Color Sensor 3 Debug");
+  display.println("Blue/Red Detector");
+  display.println("Press BACK to exit");
+  display.display();
+  
+  while (true) {
+    // Check for exit button
+    if (digitalRead(BTN_BACK) == LOW) {
+      delay(DEBOUNCE_DELAY);
+      if (digitalRead(BTN_BACK) == LOW) {
+        break;  // Exit debug mode
+      }
+    }
+    
+    // For this sensor, we'll need to implement the detection code
+    // This is a placeholder for the blue/red sensor code
+    
+    // Display results
+    display.clearDisplay();
+    display.setCursor(0,0);
+    display.println("Color Sensor 3 Debug");
+    display.println("Blue/Red Detector");
+    display.println("Press BACK to exit");
+    display.println("\nNOTE: Blue/Red");
+    display.println("sensor code needs");
+    display.println("to be implemented");
+    
+    // You can add implementation here based on your sensor hardware
+    
+    display.display();
+    
+    delay(200);  // Update display every 200ms
+  }
+  
+  // Return to main menu
+  displayMenu();
+}
+
+// Grabber Debug mode
+void displayGrabberDebug() {
+  display.clearDisplay();
+  display.setCursor(0,0);
+  display.println("Grabber Debug Mode");
+  display.println("Press BACK to exit");
+  display.println("\nUP: Test grabbing");
+  display.println("DOWN: Test releasing");
+  display.display();
+  
+  // Initial servo positions
+  int tempBasePos = basePos;
+  int tempShoulderPos = shoulderPos;
+  int tempElbowPos = elbowPos;
+  int tempGripperPos = gripperPos;
+  
+  while (true) {
+    // Check for exit button
+    if (digitalRead(BTN_BACK) == LOW) {
+      delay(DEBOUNCE_DELAY);
+      if (digitalRead(BTN_BACK) == LOW) {
+        // Reset servo positions before exiting
+        baseServo.write(basePos);
+        shoulderServo.write(shoulderPos);
+        elbowServo.write(elbowPos);
+        gripperServo.write(gripperPos);
+        break;  // Exit debug mode
+      }
+    }
+    
+    // Test grabbing sequence
+    if (digitalRead(BTN_UP) == LOW) {
+      delay(DEBOUNCE_DELAY);
+      if (digitalRead(BTN_UP) == LOW) {
+        display.clearDisplay();
+        display.setCursor(0,0);
+        display.println("Running grab test...");
+        display.display();
+        
+        // Test grab sequence
+        smoothMoveServo(baseServo, tempBasePos, 10);
+        delay(500);
+        smoothMoveServo(shoulderServo, tempShoulderPos, 50);
+        delay(500);
+        smoothMoveServo(elbowServo, tempElbowPos, 55);
+        delay(500);
+        smoothMoveServo(shoulderServo, tempShoulderPos, 75);
+        delay(500);
+        smoothMoveServo(elbowServo, tempElbowPos, 50);
+        delay(500);
+        String color = ball_colour();
+        display.println("Color: " + color);
+        display.display();
+        smoothMoveServo(gripperServo, tempGripperPos, 150);
+        delay(500);
+        
+        // Return to display
+        display.clearDisplay();
+        display.setCursor(0,0);
+        display.println("Grabber Debug Mode");
+        display.println("Press BACK to exit");
+        display.println("\nUP: Test grabbing");
+        display.println("DOWN: Test releasing");
+        display.println("\nLast detect: " + color);
+        display.display();
+      }
+    }
+    
+    // Test releasing sequence
+    if (digitalRead(BTN_DOWN) == LOW) {
+      delay(DEBOUNCE_DELAY);
+      if (digitalRead(BTN_DOWN) == LOW) {
+        display.clearDisplay();
+        display.setCursor(0,0);
+        display.println("Running release test...");
+        display.display();
+        
+        // Test release sequence
+        smoothMoveServo(elbowServo, tempElbowPos, 180);
+        delay(500);
+        smoothMoveServo(shoulderServo, tempShoulderPos, 0);
+        delay(500);
+        smoothMoveServo(baseServo, tempBasePos, 120);
+        delay(500);
+        smoothMoveServo(gripperServo, tempGripperPos, 0);
+        delay(500);
+        
+        // Return to display
+        display.clearDisplay();
+        display.setCursor(0,0);
+        display.println("Grabber Debug Mode");
+        display.println("Press BACK to exit");
+        display.println("\nUP: Test grabbing");
+        display.println("DOWN: Test releasing");
+        display.display();
+      }
+    }
+    
+    delay(50);  // Small delay for button checks
+  }
+  
+  // Return to main menu
+  displayMenu();
+}
+
+
 int Green_White_Detect(){
   uint16_t r, g, b, c;
   
