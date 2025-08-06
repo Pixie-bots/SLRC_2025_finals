@@ -20,7 +20,7 @@ This robot was designed to compete in the SLRC 2025 University Category, which c
 
 The robot's performance at the grand finale was broadcast live on YouTube.  
 Watch our robot in action from **5:56:00 to 6:12:00** in the stream:  
-[SLRC 2025 Finals Live Broadcast](https://m.youtube.com/watch?v=aplZ_r-cd3Y)
+[SLRC 2025 Finals Live Broadcast](https://m.youtube.com/watch?v=aplZ_r-cd3Y&t=21360s)
 
 ## Images
 
