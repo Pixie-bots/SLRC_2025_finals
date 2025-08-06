@@ -1,95 +1,124 @@
 
----
 
-# SLRC 2025 Finals – Pixie-bots
+# PixieBots – SLRC 2025 Finalists
 
-Welcome to the official repository for the Pixie-bots team's robot developed for the Sri Lankan Robotics Challenge (SLRC) 2025 University Category!
-
-## Overview
-
-This robot was designed to compete in the SLRC 2025 University Category, which consists of 6 challenging tasks as outlined in the official [SLRC University Category PDF](https://ent.uom.lk/wp-content/uploads/2025/02/SLRC-University-Category.pdf). Our robot successfully completed 3 out of the 6 tasks at the grand finale.
-
-## Competition Details
-
-- **Event:** SLRC 2025 University Category Robotics Competition
-- **Organizer:** Electronic Club, University of Moratuwa
-- **Tasks:** 6 tasks ([PDF](https://ent.uom.lk/wp-content/uploads/2025/02/SLRC-University-Category.pdf))
-- **Achievement:** 3 tasks completed successfully
-
-## Grand Finale
-
-The robot's performance at the grand finale was broadcast live on YouTube.  
-Watch our robot in action from **5:56:00 to 6:12:00** in the stream:  
-[SLRC 2025 Finals Live Broadcast](https://m.youtube.com/watch?v=aplZ_r-cd3Y&t=21360s)
-
-## Images
-
-![Team Pixie-bots](team.jpg)  
-*Our dedicated team behind the project*
-
-![Competition Robot](robo.jpg)  
-*The robot that competed at SLRC 2025 Finals*
+Welcome to the official repository for the PixieBots’ robot, a top-five finalist in **SLRC 2025 (Sri Lanka’s Largest Robotic Competition)**, University Category. This repository showcases our engineering journey, robust software, and mechanical innovations designed to tackle a complex, multi-faceted challenge under a demanding 30-minute time limit.
 
 ---
 
-## Robust Code Architecture
+## 🚀 Robot Overview
 
-Our robot’s performance relied on a highly robust and modular codebase, designed to maximize reliability and flexibility in a demanding competition environment.
+Our robot features a compact, robust mechanical design (**24 cm x 18 cm**) and a custom **4-Degrees of Freedom (DoF) robotic arm**. It’s engineered for precision, adaptability, and autonomous operation in dynamic, unpredictable environments.
+
+### Key Mechanical Features
+- **4DOF Robotic Arm:** Shoulder rotation, elbow flexion, wrist rotation, and gripper actuation powered by precision servos.
+- **Integrated Storage:** Two onboard compartments for color-classified ping-pong balls.
+- **Durable Chassis:** Designed for stability across ramps, muddy regions, and confined passages.
+
+<img src="https://github.com/user-attachments/assets/5353fcd7-91c0-462a-a587-c2c1568617ba" width="500">
+
+---
+
+## 🤖 Autonomous Capabilities
+
+Our robot’s intelligence is built on a robust, modular codebase, enabling it to interpret and react to its surroundings with high accuracy and reliability.
+
+### Navigation & Sensing
+- **Line Following & Junction Detection:** Tracks both solid and colored lines, recognizes junctions for grid-based navigation.
+- **Dotted Line Following:** Advanced tracking for segmented paths.
+- **Obstacle Detection:** Proactively avoids obstacles using real-time sensor data.
+- **Ramp Navigation:** Detects inclines (e.g., 20-degree ramp) and dynamically adjusts speed for safe traversal.
+
+### Sensing & Control Systems
+- **Color-Based Classification:** Detects and sorts ping-pong balls by color using calibrated sensors.
+- **Barcode Reading:** IR sensor-based barcode detection for environmental awareness.
+- **Encoder PID Control:** Maintains precise straight-line movement using PID algorithms and high-resolution encoders.
+
+### Manipulation Tasks
+- **Precise Object Handling:** Picks and places balls and boxes with accuracy.
+- **Automated Sorting:** Stores classified objects in dedicated compartments.
+
+[![Watch the video](https://img.youtube.com/vi/zhswnPzu45Y/0.jpg)](https://youtu.be/zhswnPzu45Y)
+
+---
+
+## 🧠 Robust Code Architecture
+
+Our software is designed for reliability, flexibility, and real-time performance.
 
 ### Reliability Features
-
-- **Comprehensive Error Handling:** All critical subsystems feature layered error detection and graceful recovery for hardware faults, sensor anomalies, and communication failures.
-- **Sensor Integration:** Real-time fusion of sensor data (IMU, proximity, encoders) ensures accurate state estimation and reactive control.
-- **Fail-Safe Routines:** The code includes watchdog timers and safety interlocks, guaranteeing that the robot enters a safe state in the event of unexpected behavior.
+- **Comprehensive Error Handling:** Detects hardware faults, sensor anomalies, and recovers gracefully from unexpected events.
+- **Fail-Safe Routines:** Watchdog timers and safety interlocks ensure safe operation at all times.
 
 ### Modularity & Extensibility
-
-- **Task-Based Modules:** Each competition task is encapsulated in its own code module, allowing rapid adaptation or replacement before and during the event.
-- **Subsystem Abstraction:** High-level orchestration communicates with independent modules for locomotion, manipulation, and sensing, allowing parallel development and debugging.
+- **Task-Based Modules:** Each competition objective is encapsulated for rapid adaptation before/during the event.
+- **Subsystem Abstraction:** Independent modules for locomotion, manipulation, and sensing allow parallel development and debugging.
 
 ### Real-Time Decision Making
-
-- **Event-Driven Architecture:** The robot employs asynchronous event loops to respond instantly to environmental changes and judge commands.
-- **Inter-Subsystem Communication:** Efficient message passing ensures coordinated action between mobility, arm control, and sensor feedback, supporting complex multi-step tasks.
+- **Event-Driven Architecture:** Asynchronous event loops respond instantly to environmental changes and judge commands.
+- **Subsystem Communication:** Efficient message passing coordinates the arm, drive system, and sensors for multi-step tasks.
 
 ---
 
-## 4DOF Robotic Arm
+## 🦾 The 4DOF Robotic Arm – Technical Highlights
 
-A key innovation in our robot is its custom-designed 4 Degrees of Freedom (4DOF) robotic arm, which enabled successful completion of manipulation tasks.
+A centerpiece of our robot, the 4DOF arm, enabled success in manipulation and sorting tasks.
 
 ### Mechanical Design
-
-- **Joints:** Shoulder rotation, elbow flexion, wrist rotation, and gripper actuation.
-- **Actuators:** Precision digital servos provide smooth, accurate movement across all axes.
-- **Range of Motion:** The arm’s kinematic chain allows a workspace optimized for object pickup, placement, and interaction with competition elements.
+- **Joints:** Shoulder rotation, elbow flexion, wrist rotation, gripper actuation.
+- **Actuators:** High-precision servos for smooth, controlled movement.
+- **Workspace:** Optimized kinematic chain for object pickup, placement, and interaction.
 
 ### Control System
+- **Kinematics:** Forward and inverse kinematics for accurate end-effector positioning.
+- **Feedback:** Encoders and current sensors for closed-loop force and position control.
+- **Programmability:** Supports custom trajectories and variable-speed operations for delicate and fast tasks.
 
-- **Kinematics:** Forward and inverse kinematics enable precise end-effector positioning for complex tasks.
-- **Feedback:** Integrated encoders and current sensors deliver closed-loop feedback for position and force control.
-- **Precision & Programmability:** The arm supports programmable trajectories and variable-speed movement for delicate or rapid operations.
-
-### Role in Competition Tasks
-
-- **Task Execution:** The 4DOF arm was essential for tasks requiring object manipulation, including picking, sorting, and placing components.
-- **Contribution to Success:** Its reliability and precision were pivotal in completing 3 out of 6 tasks, handling varied objects and interfaces under time pressure.
+### Role in Competition
+- **Task Execution:** Essential for picking, sorting, and placing objects under time pressure.
+- **Contribution:** Key to completing color classification, ball collection, and storage tasks.
 
 ---
 
-## Repository Contents
+## 🏆 Competition Journey
 
-- Source code for robust robot control and task automation
-- Documentation and setup instructions
-- Technical details and schematics of the 4DOF arm
-- Media from the grand finale
+The SLRC 2025 finals presented us with eight distinct objectives to be completed within a tight 30-minute window. Our robot excelled in:
 
-## References
+1. **Ping-Pong Ball Collection:** Grabbing balls from cylindrical components in a grid.
+2. **Color-Based Classification:** Sorting balls by color with high sensor precision.
+3. **Muddy Region Navigation:** Maneuvering through tough terrain and obstacles.
+4. **Ramp Ascent & Descent:** Traversing steep ramps with robust control.
+5. **Confined Passage Navigation:** Precise steering through narrow, walled passages.
+
+Our seamless transitions between environments and complex multi-step execution propelled us to the top five.
+
+---
+
+## 📂 Repository Contents
+
+- Source code: Algorithms, sensor integration, and control systems
+- Technical documentation: Arm schematics, system architecture, setup instructions
+- Competition media: Photos, videos, and performance highlights
+
+[![Watch on YouTube Shorts](https://img.youtube.com/vi/lcyCcpWFLiU/0.jpg)](https://youtube.com/shorts/lcyCcpWFLiU)
+
+---
+
+## 🎥 Grand Finale Video – SLRC 2025
+
+Watch our robot's performance in the official grand finale broadcast:  
+**Performance Period:** [5:56:00 to 6:12:00](https://m.youtube.com/watch?v=aplZ_r-cd3Y&t=21360s)  
+Full broadcast: [SLRC 2025 Finals Live Broadcast](https://m.youtube.com/watch?v=aplZ_r-cd3Y)
+
+---
+
+## 📖 References
 
 - [SLRC University Category 2025 Tasks (PDF)](https://ent.uom.lk/wp-content/uploads/2025/02/SLRC-University-Category.pdf)
 
 ---
 
-For more information or to contribute, feel free to open an issue or pull request!
+We hope this repository provides valuable insights into our engineering process and inspires future robotic endeavors!  
+**Questions or feedback?** Feel free to open an issue or pull request.
 
 ---
