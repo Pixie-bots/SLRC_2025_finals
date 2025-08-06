@@ -1,4 +1,3 @@
-Certainly! Here’s an updated README for the Pixie-bots SLRC 2025 Finals repository, now including comprehensive details about the robust code and the 4DOF robotic arm:
 
 ---
 
