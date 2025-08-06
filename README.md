@@ -93,5 +93,3 @@ A key innovation in our robot is its custom-designed 4 Degrees of Freedom (4DOF)
 For more information or to contribute, feel free to open an issue or pull request!
 
 ---
-
-If you need a markdown file with this content, let me know!
